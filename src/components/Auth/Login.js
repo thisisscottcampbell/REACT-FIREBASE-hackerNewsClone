@@ -1,23 +1,37 @@
 import React, { useState } from 'react';
 import useFormValidation from './useFormValidation';
 import validateLogin from './validateLogin';
+import firebase from '../../firebase/firebase';
 
-const Login = () => {
-	const INIT_STATE = {
-		name: '',
-		email: '',
-		password: '',
-	};
+const INITIAL_STATE = {
+	name: '',
+	email: '',
+	password: '',
+};
 
+function Login(props) {
 	const {
+		handleSubmit,
+		handleBlur,
+		handleChange,
 		values,
 		errors,
-		handleSubmit,
-		handleChange,
-		handleBlur,
 		isSubmitting,
-	} = useFormValidation(INIT_STATE, validateLogin);
-	const [login, setLogin] = useState(true);
+	} = useFormValidation(INITIAL_STATE, validateLogin, authenticateUser);
+	const [login, setLogin] = React.useState(true);
+	const [firebaseError, setFirebaseError] = React.useState(null);
+
+	async function authenticateUser() {
+		const { name, email, password } = values;
+		try {
+			login
+				? await firebase.login(email, password)
+				: await firebase.register(name, email, password);
+		} catch (err) {
+			console.error('Authentication Error', err);
+			setFirebaseError(err.message);
+		}
+	}
 
 	return (
 		<div>
@@ -26,54 +40,55 @@ const Login = () => {
 				{!login && (
 					<input
 						onChange={handleChange}
-						values={values.name}
-						type="text"
-						placeholder="your name"
+						value={values.name}
 						name="name"
+						type="text"
+						placeholder="Your name"
 						autoComplete="off"
 					/>
 				)}
 				<input
 					onChange={handleChange}
 					onBlur={handleBlur}
-					values={values.email}
-					type="email"
-					placeholder="your email"
+					value={values.email}
 					name="email"
+					type="email"
+					className={errors.email && 'error-input'}
+					placeholder="Your email"
 					autoComplete="off"
 				/>
 				{errors.email && <p className="error-text">{errors.email}</p>}
 				<input
 					onChange={handleChange}
 					onBlur={handleBlur}
-					values={values.password}
-					type="password"
-					placeholder="password"
+					value={values.password}
+					className={errors.password && 'error-input'}
 					name="password"
+					type="password"
+					placeholder="Choose a secure password"
 				/>
 				{errors.password && <p className="error-text">{errors.password}</p>}
+				{firebaseError && <p className="error-text">{firebaseError}</p>}
 				<div className="flex mt3">
 					<button
 						type="submit"
 						className="button pointer mr2"
 						disabled={isSubmitting}
-						style={{
-							background: isSubmitting ? 'grey' : 'orange',
-						}}
+						style={{ background: isSubmitting ? 'grey' : 'orange' }}
 					>
 						Submit
 					</button>
 					<button
-						type="submit"
-						className="button pointer"
+						type="button"
+						className="pointer button"
 						onClick={() => setLogin((prevLogin) => !prevLogin)}
 					>
-						{login ? 'need to create an account?' : 'already have an account'}
+						{login ? 'need to create an account?' : 'already have an account?'}
 					</button>
 				</div>
 			</form>
 		</div>
 	);
-};
+}
 
 export default Login;
